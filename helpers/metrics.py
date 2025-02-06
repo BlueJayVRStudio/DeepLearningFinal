@@ -1,6 +1,8 @@
 import numpy as np
 from matplotlib.colors import Normalize
 import matplotlib.pyplot as plt
+from sklearn.metrics import precision_score, recall_score, accuracy_score
+from sklearn.metrics import roc_curve, auc
 
 # Helper function from CSCA5622 Week 6: SVM Lab 
 class MidpointNormalize(Normalize):
@@ -55,6 +57,40 @@ def recall(confusion_mat):
         recalls.append(true_positive/ positives)
     return sum(recalls)/len(recalls)
 
+
+def plot_accuracy(hist, name):
+    hist_train = hist.history['accuracy']
+    hist_val = hist.history['val_accuracy']
+
+    plt.figure(figsize=(11, 7))
+
+    plt.plot(range(len(hist_train)), hist_train, marker='o', label = 'accuracy, training')
+    plt.plot(range(len(hist_train)), hist_val, marker='o', label = 'accuracy, validation')
+    
+    plt.xticks(range(len(hist_train)), range(len(hist_train)), rotation=45)
+    
+    plt.legend() 
+    
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy")
+    plt.title(name)
+    plt.grid(True)
+    plt.show()
+
+def plot_roc(y_true, y_pred, name):
+    fpr, tpr, thresholds = roc_curve(y_true, y_pred)
+    
+    roc_auc = auc(fpr, tpr)
+    
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, color='blue', label=f'ROC Curve (AUC = {roc_auc:.2f})')
+    plt.plot([0, 1], [0, 1], color='red', linestyle='--', label='Random Chance')
+    plt.title(name)
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.legend(loc='lower right')
+    plt.grid(alpha=0.3)
+    plt.show()
 
 if __name__ == "__main__":
     print("helper functions for CSCA 5642 final project")
