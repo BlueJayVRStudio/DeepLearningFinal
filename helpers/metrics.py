@@ -4,6 +4,10 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import precision_score, recall_score, accuracy_score
 from sklearn.metrics import roc_curve, auc
 
+from sklearn.metrics import confusion_matrix
+from helpers.metrics import *
+from scipy import stats
+
 # Helper function from CSCA5622 Week 6: SVM Lab 
 class MidpointNormalize(Normalize):
 
@@ -91,6 +95,86 @@ def plot_roc(y_true, y_pred, name):
     plt.legend(loc='lower right')
     plt.grid(alpha=0.3)
     plt.show()
+
+def XOR(a, b):
+    return (a and not b) or (not a and b)
+    
+# Summary Statistics Handling
+def handle_stats(summary_stats, predictor, _x_train, _x_test, _y_train, _y_test, model_name=None, _prediction=None, is_test=True, permute_labels=False):
+    assert model_name is not None, "Please provide model name"
+    assert XOR(predictor is not None, _prediction is not None), "Either provide a predictor or a prediction, and not both."
+    
+    ### Prepare predictions
+    prediction = None
+    if predictor is not None and is_test:
+        prediction = predictor.predict(_x_test)
+    elif predictor is not None and not is_test:
+        prediction = predictor.predict(_x_train)
+    else:
+        prediction = _prediction
+        
+    ### Prepare labels
+    labels = np.array(_y_test) if is_test else np.array(_y_train)
+
+    # ### Permute labels if necessary (for clustering methods)
+    # if permute_labels:
+    #     labelorder, acc = label_permute_compare(labels, prediction)
+    #     cluster_to_index = np.take(labelorder, prediction)
+    #     prediction = np.take(unique_labels, cluster_to_index)
+
+    print(f"Prediction: {prediction}, shape: {prediction.shape} \n")
+    print(f"True Label: {labels}, shape: {labels.shape} \n")
+    
+    # Calculate Accuracy
+    total = len(np.array(prediction == labels))
+    correct = len(np.where(np.array(prediction == labels) == True)[0])
+    accuracy = correct/total
+    
+    # Construct confusion matrix
+    confusion_mat = confusion_matrix(labels, prediction)
+    
+    # Calculate Precision
+    _precision = precision(confusion_mat)
+    # Calculate Recall
+    _recall = recall(confusion_mat)
+
+    # Calculate p-value assuming binomial probability distribution for n = |label|
+    p = 0.5
+    n = len(labels)
+    mean = p * n
+    std = np.sqrt(n * p * (1-p))
+    observed_accuracy = accuracy * n
+    
+    # Calculate the z-score
+    z_score = (observed_accuracy - mean) / std
+    
+    # Calculate the p-value (two-tailed)
+    p_value = 2 * (1 - stats.norm.cdf(abs(z_score)))
+    
+    print(f"Z-Score: {z_score} \n")
+    print(f"P-Value: {p_value} \n")
+    
+    summary_stats['P-Value'].append(p_value)
+    summary_stats['Is Significant'].append(True) if p_value < 0.05 else summary_stats['Is Significant'].append(False)
+    
+    summary_stats['Model'].append(model_name)
+
+    print(confusion_mat)
+
+    ###
+    suffix = "est" if is_test else "rain"
+    antisuffix = "rain" if is_test else "est"
+    
+    print(f"t{suffix} accuracy: {accuracy}")
+    print(f"t{suffix} precision: {_precision}")
+    print(f"t{suffix} recall: {_recall}")
+
+    summary_stats[f'T{suffix} Accuracy'].append(accuracy)
+    summary_stats[f'T{suffix} Precision'].append(_precision)
+    summary_stats[f'T{suffix} Recall'].append(_recall)
+    summary_stats[f'T{antisuffix} Accuracy'].append(None)
+    summary_stats[f'T{antisuffix} Precision'].append(None)
+    summary_stats[f'T{antisuffix} Recall'].append(None)
 
 if __name__ == "__main__":
     print("helper functions for CSCA 5642 final project")
