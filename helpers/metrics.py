@@ -5,8 +5,9 @@ from sklearn.metrics import precision_score, recall_score, accuracy_score
 from sklearn.metrics import roc_curve, auc
 
 from sklearn.metrics import confusion_matrix
-from helpers.metrics import *
 from scipy import stats
+
+from matplotlib.ticker import MaxNLocator
 
 # Helper function from CSCA5622 Week 6: SVM Lab 
 class MidpointNormalize(Normalize):
@@ -73,6 +74,9 @@ def plot_accuracy(hist, name):
     
     plt.xticks(range(len(hist_train)), range(len(hist_train)), rotation=45)
     
+    ax = plt.gca()
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True, prune='both', nbins=10))
+    
     plt.legend() 
     
     plt.xlabel("Epoch")
@@ -100,27 +104,11 @@ def XOR(a, b):
     return (a and not b) or (not a and b)
     
 # Summary Statistics Handling
-def handle_stats(summary_stats, predictor, _x_train, _x_test, _y_train, _y_test, model_name=None, _prediction=None, is_test=True, permute_labels=False):
-    assert model_name is not None, "Please provide model name"
-    assert XOR(predictor is not None, _prediction is not None), "Either provide a predictor or a prediction, and not both."
-    
-    ### Prepare predictions
-    prediction = None
-    if predictor is not None and is_test:
-        prediction = predictor.predict(_x_test)
-    elif predictor is not None and not is_test:
-        prediction = predictor.predict(_x_train)
-    else:
-        prediction = _prediction
-        
+def handle_stats(summary_stats, predictor, _x_test, _y_test, model_name):
+    prediction = predictor.predict(_x_test).reshape((60, ))
+    prediction = (prediction > 0.5).astype(int)
     ### Prepare labels
-    labels = np.array(_y_test) if is_test else np.array(_y_train)
-
-    # ### Permute labels if necessary (for clustering methods)
-    # if permute_labels:
-    #     labelorder, acc = label_permute_compare(labels, prediction)
-    #     cluster_to_index = np.take(labelorder, prediction)
-    #     prediction = np.take(unique_labels, cluster_to_index)
+    labels = np.array(_y_test)
 
     print(f"Prediction: {prediction}, shape: {prediction.shape} \n")
     print(f"True Label: {labels}, shape: {labels.shape} \n")
@@ -161,20 +149,15 @@ def handle_stats(summary_stats, predictor, _x_train, _x_test, _y_train, _y_test,
 
     print(confusion_mat)
 
-    ###
-    suffix = "est" if is_test else "rain"
-    antisuffix = "rain" if is_test else "est"
-    
-    print(f"t{suffix} accuracy: {accuracy}")
-    print(f"t{suffix} precision: {_precision}")
-    print(f"t{suffix} recall: {_recall}")
+    ###    
+    print(f"test accuracy: {accuracy}")
+    print(f"test precision: {_precision}")
+    print(f"test recall: {_recall}")
 
-    summary_stats[f'T{suffix} Accuracy'].append(accuracy)
-    summary_stats[f'T{suffix} Precision'].append(_precision)
-    summary_stats[f'T{suffix} Recall'].append(_recall)
-    summary_stats[f'T{antisuffix} Accuracy'].append(None)
-    summary_stats[f'T{antisuffix} Precision'].append(None)
-    summary_stats[f'T{antisuffix} Recall'].append(None)
+    summary_stats[f'Test Accuracy'].append(accuracy)
+    summary_stats[f'Test Precision'].append(_precision)
+    summary_stats[f'Test Recall'].append(_recall)
+
 
 if __name__ == "__main__":
     print("helper functions for CSCA 5642 final project")
